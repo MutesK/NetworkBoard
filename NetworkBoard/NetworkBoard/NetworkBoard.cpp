@@ -27,7 +27,7 @@ bool bSendFlag = false;
 SOCKET sock;
 CRingBuffer RecvQ(10000);
 CRingBuffer SendQ(10000);
-
+char testbuf[10000];
 
 // 이 코드 모듈에 들어 있는 함수의 정방향 선언입니다.
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -53,7 +53,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
 
-
+	timeBeginPeriod(1);
 
 	// 다이얼로그 생성
 	DialogBox(hInstance, MAKEINTRESOURCE(IDD_ADDR), NULL, DialogProc);
@@ -106,6 +106,12 @@ bool NetworkInit()
 	serveraddr.sin_family = AF_INET;
 	InetPton(AF_INET, g_szIP, &serveraddr.sin_addr);
 	serveraddr.sin_port = htons(PORT);
+
+	bool bTrueFlag = false;
+	//------------------------------------------------------
+	// Nagle 알고리즘 적용 or 미적용
+	//------------------------------------------------------
+	setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, (char *)&bTrueFlag, sizeof(bool));
 
 	err = connect(sock, (SOCKADDR *)&serveraddr, sizeof(serveraddr));
 	if (err == SOCKET_ERROR)
@@ -339,6 +345,8 @@ void SendEvent()
 	if (SendQ.GetUseSize() <= 0)
 		return;
 
+
+
 	WSABUF wsabuf[2];
 	int bufcount = 1;
 
@@ -383,9 +391,10 @@ void RecvEvent()
 	WSABUF wsabuf[2];
 	int bufcount = 1;
 
+
 	wsabuf[0].len = RecvQ.GetNotBrokenPutSize();
 	wsabuf[0].buf = RecvQ.GetWriteBufferPtr();
-
+	
 	if (RecvQ.GetNotBrokenPutSize() < RecvQ.GetFreeSize())
 	{
 		// 아직 공간이 남아 있다면
@@ -393,6 +402,7 @@ void RecvEvent()
 		wsabuf[1].buf = RecvQ.GetBufferPtr();
 		bufcount++;
 	}
+	
 	
 	DWORD SendSize = 0;
 	DWORD Flag = 0;
@@ -406,9 +416,9 @@ void RecvEvent()
 			wsprintf(szTest, L"Error = %d \n", WSAGetLastError());
 			OutputDebugString(szTest);
 
-			MessageBox(g_hWnd, L"소켓 에러", L"Error", MB_OK);
+			//MessageBox(g_hWnd, L"소켓 에러", L"Error", MB_OK);
 			exit(1);
-		}
+		} 
 	}
 	
 
@@ -419,9 +429,10 @@ void RecvEvent()
 void PacketProc()
 {
 	unsigned short len;
-
+	char* t = testbuf;
 	while (1)
 	{
+		
 		if (RecvQ.GetUseSize() < 2)
 			break;
 
@@ -432,8 +443,8 @@ void PacketProc()
 			break;
 
 		RecvQ.Get(((char *)&Packet), len + 2);
-
 		RecvQ.RemoveData(len + 2);
+
 		Draw();
 	}
 

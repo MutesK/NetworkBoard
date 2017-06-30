@@ -13,7 +13,7 @@
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 
 #include <windows.h>
-
+#include <timeapi.h>
 // C 런타임 헤더 파일입니다.
 #include <stdlib.h>
 #include <malloc.h>
@@ -23,6 +23,7 @@
 #include <stdio.h>
 // TODO: 프로그램에 필요한 추가 헤더는 여기에서 참조합니다.
 #pragma comment(lib, "ws2_32")
+#pragma comment(lib, "winmm.lib")
 #include <WinSock2.h>
 #include <WS2tcpip.h>
 

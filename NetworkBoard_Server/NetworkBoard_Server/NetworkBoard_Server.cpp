@@ -43,6 +43,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
 
+	timeBeginPeriod(1);
+
     // TODO: 여기에 코드를 입력합니다.
 	if (AllocConsole()) {
 		freopen("CONIN$", "rb", stdin);
@@ -275,6 +277,9 @@ void RemoveSocket(SOCKET sock)
 			SendMessage(list, LB_ADDSTRING, 0, (LPARAM)L"Client 접속 해제");
 			closesocket(dP->sock);
 			dP->sock = INVALID_SOCKET;
+
+			dP->RecvQ.ClearBuffer();
+			dP->SendQ.ClearBuffer();
 		}
 	}
 }
@@ -375,10 +380,33 @@ void RecvClientEvent(SOCKET sock)
 	}
 
 	dQueue->RecvQ.MoveWritePos(RecvSize);
-	PacketProc(&dQueue->RecvQ);
+	/*
+	// 임시용 패킷 체크
+	char recvTest[10000], recv1Test[10000];
+	if (bufcount == 1)
+	{
+		memcpy(recvTest, wsabuf[0].buf, RecvSize);
 
-	dQueue->RecvQ.ClearBuffer();
-	return;
+		dQueue->RecvQ.Peek(recv1Test, RecvSize);
+		if (memcmp(recvTest, recv1Test, RecvSize) != 0)
+		{
+			printf("Peek Error \n Peek Error \n Peek Error \n Peek Error \n Peek Error \n");
+		}
+	}
+	if (bufcount == 2)
+	{
+		memcpy(recvTest, wsabuf[0].buf, wsabuf[0].len);
+		memcpy(recvTest + wsabuf[0].len, wsabuf[1].buf, wsabuf[1].len);
+		dQueue->RecvQ.Peek(recv1Test, RecvSize);
+
+		if (memcmp(recvTest, recv1Test, RecvSize) != 0)
+		{
+			printf("Peek Error \n Peek Error \n Peek Error \n Peek Error \n Peek Error \n");
+		}
+	}
+	*/
+	PacketProc(&dQueue->RecvQ);
+	
 }
 
 void PacketProc(CRingBuffer *pRecv)
@@ -387,6 +415,9 @@ void PacketProc(CRingBuffer *pRecv)
 	{
 		unsigned short len;
 		st_PACKET Packet;
+		static int befX = 0;
+		static int befY = 0;
+
 		while (1)
 		{
 			if (pRecv->GetUseSize() < 2)
@@ -399,12 +430,33 @@ void PacketProc(CRingBuffer *pRecv)
 				break;
 
 			pRecv->Get((char *)&Packet, len + 2);
+			
+			// 디버그용 소스
+			if (befX != 0 && befY != 0)
+			{
+				if (befX != Packet.iStartX && befY != Packet.iStartY)
+				{
+					st_PACKET T;
+					T.len = 16;
+					T.iStartX = befX;
+					T.iStartY = befY;
+					T.iEndX = Packet.iStartX;
+					T.iEndY = Packet.iStartY;
+					//SendDraw(&T);
 
-			pRecv->RemoveData(len + 2);
+					printf("Debug RecvError(이음새) : StartX = %d StartY = %d, EndX = %d EndY = %d \n", T.iStartX,
+						T.iStartY, T.iEndX, T.iEndY);
+				}
+			}
 
-			printf("Debug Recved : StartX = %d StartY = %d, EndX = %d EndY = %d \n", Packet.iStartX,
+			printf("Debug Recved : Len = %d StartX = %d StartY = %d, EndX = %d EndY = %d \n", Packet.len, Packet.iStartX,
 				Packet.iStartY, Packet.iEndX, Packet.iEndY);
 
+			befX = Packet.iEndX;
+			befY = Packet.iEndY;
+			////////////////////
+
+			pRecv->RemoveData(len + 2);
 			SendDraw(&Packet);
 		}
 	}

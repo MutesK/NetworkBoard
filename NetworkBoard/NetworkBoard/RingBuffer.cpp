@@ -39,7 +39,7 @@ int	CRingBuffer::GetUseSize(void)
 	if (m_rear >= m_front)
 		return m_rear - m_front;
 	else
-		return m_rear + (m_bufferSize - 2) - m_front;
+		return m_rear + (m_bufferSize - 1) - m_front;
 }
 
 /////////////////////////////////////////////////////////////////////////
@@ -50,7 +50,7 @@ int	CRingBuffer::GetUseSize(void)
 /////////////////////////////////////////////////////////////////////////
 int	CRingBuffer::GetFreeSize(void)
 {
-	return (m_bufferSize - 2) - GetUseSize();
+	return (m_bufferSize - 1) - GetUseSize();
 }
 
 /////////////////////////////////////////////////////////////////////////
@@ -64,7 +64,7 @@ int	CRingBuffer::GetNotBrokenGetSize(void)
 {
 	if (m_front >= m_rear)
 	{
-		int endPointIndex = m_bufferSize - 2;
+		int endPointIndex = m_bufferSize - 1;
 
 		return endPointIndex - m_front;
 	}
@@ -75,7 +75,7 @@ int	CRingBuffer::GetNotBrokenPutSize(void)
 {
 	if (m_front <= m_rear)
 	{
-		int endPointIndex = m_bufferSize - 2;
+		int endPointIndex = m_bufferSize - 1;
 
 		return endPointIndex - m_rear;
 	}
@@ -180,11 +180,9 @@ int	CRingBuffer::Get(char *chpDest, int iSize)
 	else
 	{
 		int pSize = GetNotBrokenGetSize();
-		int frontIndex = m_front;
 		if (pSize < iSize)
 		{
 			memcpy(chpDest, m_buffer + m_front, pSize);
-			frontIndex += pSize;
 			getSize += pSize;
 
 			if (iSize - pSize > m_rear)
@@ -234,11 +232,9 @@ int	CRingBuffer::Peek(char *chpDest, int iSize)
 	else
 	{
 		int pSize = GetNotBrokenGetSize();
-		int frontIndex = m_front;
 		if (pSize < iSize)
 		{
 			memcpy(chpDest, m_buffer + m_front, pSize);
-			frontIndex += pSize;
 			getSize += pSize;
 			chpDest += pSize;
 
